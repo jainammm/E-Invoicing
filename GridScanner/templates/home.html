@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Grid Scanner</title>
+
+    <link href="static/css/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta.2/css/bootstrap.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/12.1.2/css/intlTelInput.css">
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-nice-select/1.1.0/css/nice-select.min.css">
+
+</head>
+
+<body>
+    <!-- Multi step form -->
+    <section class="multi_step_form">
+        <div id="msform">
+            <!-- Tittle -->
+            <div class="tittle">
+                <h2>Grid Scanner</h2>
+            </div>
+            <!-- fieldsets -->
+            <fieldset>
+                <h6>Please upload Invoice documents to generate E-Invoice.</h6>
+                <img id="blah" src="#" alt="your image" />
+                <div class="input-group">
+                    <form id="fileinfo" enctype="multipart/form-data" method="post" class="custom-file">
+                        <input type="file" class="custom-file-input" id="upload">
+                        <label class="custom-file-label" for="upload"><i class="ion-android-cloud-outline"></i>Choose
+                            file</label>
+                    </form>
+                </div>
+                <div id="loader" class="loader"></div>
+                <button type="button" class="next action-button">Scan</button>
+
+            </fieldset>
+            <fieldset>
+                <h3>Scan Result Prepared in Excel File</h3>
+
+                <a id="xlsx_iframe" class="action-button">Download</a>
+                <br>
+                <br>
+
+                <div id="content"></div>
+                <button id="authorize-button" class="action-button" style="display: none;margin: auto;">Sign In To
+                    Upload to
+                    Drive</button>
+                <br>
+                <button id="signout-button" class="action-button" style="display: none;margin: auto;">Sign Out from From
+                    Google</button>
+                <br>
+                <button id="upload-button" onclick="UploadToDrive()" class="action-button" style="display: none;margin: auto;">Upload to Drive</button>
+                <div id="loader1" class="loader"></div>
+                <div id="done"></div>
+                <br>
+                <button onclick="location.reload()" class="action-button">Finish</button>
+            </fieldset>
+        </div>
+    </section>
+    <!-- End Multi step form -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.3/jquery.easing.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/12.1.2/js/intlTelInput.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-nice-select/1.1.0/js/jquery.nice-select.min.js"></script>
+    <script src="static/js/upload.js"></script>
+
+    <script type="text/javascript">
+        // Enter an API key from the Google API Console:
+        //   https://console.developers.google.com/apis/credentials
+
+        // Enter the API Discovery Docs that describes the APIs you want to
+        // access. In this example, we are accessing the People API, so we load
+        // Discovery Doc found here: https://developers.google.com/people/api/rest/
+        var discoveryDocs = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+
+        // Enter a client ID for a web application from the Google API Console:
+        //   https://console.developers.google.com/apis/credentials?project=_
+        // In your API Console project, add a JavaScript origin that corresponds
+        //   to the domain where you will be running the script.
+
+        var clientId = '1028502662471-qg23jq1f7urh7606ae8ugctft9lkd0a9.apps.googleusercontent.com';
+
+        // Enter one or more authorization scopes. Refer to the documentation for
+        // the API or https://developers.google.com/people/v1/how-tos/authorizing
+        // for details.
+        var scopes = 'https://www.googleapis.com/auth/drive.file';
+
+        var authorizeButton = document.getElementById('authorize-button');
+        var signoutButton = document.getElementById('signout-button');
+        var uploadButton = document.getElementById('upload-button');
+
+        function handleClientLoad() {
+            // Load the API client and auth2 library
+            gapi.load('client:auth2', initClient);
+        }
+
+        function initClient() {
+            gapi.client.init({
+                discoveryDocs: discoveryDocs,
+                clientId: clientId,
+                scope: scopes
+            }).then(function() {
+                // Listen for sign-in state changes.
+                gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+
+                // Handle the initial sign-in state.
+                updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+
+                authorizeButton.onclick = handleAuthClick;
+                signoutButton.onclick = handleSignoutClick;
+            });
+        }
+
+        function updateSigninStatus(isSignedIn) {
+            if (isSignedIn) {
+                authorizeButton.style.display = 'none';
+                signoutButton.style.display = 'block';
+                uploadButton.style.display = "block";
+            } else {
+                authorizeButton.style.display = 'block';
+                signoutButton.style.display = 'none';
+                uploadButton.style.display = "none";
+            }
+        }
+
+        function handleAuthClick(event) {
+            gapi.auth2.getAuthInstance().signIn();
+        }
+
+        function handleSignoutClick(event) {
+            gapi.auth2.getAuthInstance().signOut();
+        }
+
+        function appendPre(message) {
+            var pre = document.getElementById('content');
+            var textContent = document.createTextNode(message + '\n');
+            pre.appendChild(textContent);
+        }
+
+        // Load the API and make an API call.  Display the results on the screen.
+        function GetFilename(url) {
+            var filename = url.split('/')
+            return filename[1];
+        }
+
+        function UploadToDrive() {
+            $('#loader1').show();
+            var file;
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', $("#xlsx_iframe").attr('href'), true);
+            xhr.responseType = 'blob';
+            xhr.onload = function(e) {
+                if (this.status == 200) {
+                    file = this.response;
+                    var metadata = {
+                        'name': GetFilename($("#xlsx_iframe").attr('href')) + '.xlsx', // Filename at Google Drive
+                        'mimeType': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // mimeType at Google Drive
+                        'parents': [], // Folder ID at Google Drive
+                    };
+
+                    var accessToken = gapi.auth.getToken().access_token; // Here gapi is used for retrieving the access token.
+                    var form = new FormData();
+                    form.append('metadata', new Blob([JSON.stringify(metadata)], {
+                        type: 'application/json'
+                    }));
+                    form.append('file', file);
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('post', 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id');
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+                    xhr.responseType = 'json';
+                    xhr.onload = () => {
+                        console.log(xhr.response.id); // Retrieve uploaded file ID.
+                        $('#loader1').hide();
+                        $('#done').html('uploaded to drive as ' + GetFilename($("#xlsx_iframe").attr('href')) + '.xlsx');
+                    };
+                    xhr.send(form);
+                }
+            };
+            xhr.send();
+        }
+    </script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};handleClientLoad()" onreadystatechange="if (this.readyState === 'complete') this.onload()">
+    </script>
+
+</body>
+
+</html>

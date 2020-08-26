@@ -1,0 +1,29 @@
+version: "2.0"
+services:
+  gridscanner:
+    image: jvenom/gridscanner
+    environment:
+      - DICT_PATH=predict/dict/grid
+
+      - TENSORFLOW_HOST=cutiepi
+      - TENSORFLOW_PORT=8500
+      - TENSORFLOW_MODEL=CUTIE
+      - TENSORFLOW_SIGNATURE_NAME=serving_default
+
+      - INVOICEHOLDER_HOST=invoiceplaceholder
+      - INVOICEHOLDER_PORT=8001
+    ports:
+      - "8000:8000"
+    depends_on:
+      - invoiceplaceholder
+      - cutiepi
+    volumes:
+      - ./results:/code/results
+  invoiceplaceholder:
+    image: jvenom/invoiceplaceholder
+    ports:
+      - "8001:8001"
+  cutiepi:
+    image: jvenom/cutiepi
+    ports:
+      - "8500:8500"
